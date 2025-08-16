@@ -2,8 +2,8 @@ pipeline {
   agent any
 
   tools {
-    jdk 'jdk17'
-    maven 'Maven3'
+    jdk 'jdk17'          // 🔁 Must match Jenkins → Global Tool Configuration
+    maven 'Maven3'       // 🔁 Same here
   }
 
   environment {
@@ -28,7 +28,10 @@ pipeline {
 
     stage('Deploy to Nexus (Maven)') {
       steps {
-        sh 'mvn deploy -DskipTests'
+        // ✅ Inject settings.xml with Nexus credentials
+        configFileProvider([configFile(fileId: 'global-maven-settings', variable: 'MAVEN_SETTINGS')]) {
+          sh 'mvn deploy -DskipTests -s $MAVEN_SETTINGS'
+        }
       }
     }
 
@@ -50,6 +53,15 @@ pipeline {
           """
         }
       }
+    }
+  }
+
+  post {
+    success {
+      echo '✅ Build and Deployment to Nexus succeeded.'
+    }
+    failure {
+      echo '❌ Build failed. Check the console output for errors.'
     }
   }
 }
